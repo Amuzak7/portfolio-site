@@ -3,25 +3,103 @@
 @tailwind utilities;
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --bg-main: #0F172A;
+  --text-main: #F8FAFC;
+  --accent: #06B6D4;
+  --sub-text: #64748B;
+  --card-bg: #1E2937;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
 }
 
 body {
-  color: var(--foreground);
-  background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
+  background-color: var(--bg-main);
+  color: var(--text-main);
+  font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-@layer utilities {
-  .text-balance {
-    text-wrap: balance;
-  }
+/* Scroll animation: elements start hidden, animate in when .visible is added */
+.scroll-reveal {
+  opacity: 0;
+  transform: translateY(24px);
+  transition: opacity 0.6s ease-out, transform 0.6s ease-out;
+}
+
+.scroll-reveal.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.scroll-reveal-delay-1 { transition-delay: 0.1s; }
+.scroll-reveal-delay-2 { transition-delay: 0.2s; }
+.scroll-reveal-delay-3 { transition-delay: 0.3s; }
+.scroll-reveal-delay-4 { transition-delay: 0.4s; }
+
+/* Cyan gradient text */
+.gradient-text {
+  background: linear-gradient(135deg, #06B6D4 0%, #F8FAFC 60%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Cyan glow effect for buttons */
+.btn-primary {
+  background-color: #06B6D4;
+  color: #0F172A;
+  font-weight: 600;
+  padding: 0.75rem 1.75rem;
+  border-radius: 0.5rem;
+  transition: background-color 0.2s, box-shadow 0.2s, transform 0.1s;
+  display: inline-block;
+}
+
+.btn-primary:hover {
+  background-color: #22D3EE;
+  box-shadow: 0 0 20px rgba(6, 182, 212, 0.4);
+  transform: translateY(-1px);
+}
+
+.btn-outline {
+  border: 1.5px solid #06B6D4;
+  color: #06B6D4;
+  font-weight: 600;
+  padding: 0.75rem 1.75rem;
+  border-radius: 0.5rem;
+  transition: background-color 0.2s, box-shadow 0.2s, transform 0.1s;
+  display: inline-block;
+}
+
+.btn-outline:hover {
+  background-color: rgba(6, 182, 212, 0.1);
+  box-shadow: 0 0 20px rgba(6, 182, 212, 0.2);
+  transform: translateY(-1px);
+}
+
+/* Dot grid background pattern */
+.dot-grid {
+  background-image: radial-gradient(circle, rgba(6, 182, 212, 0.15) 1px, transparent 1px);
+  background-size: 32px 32px;
+}
+
+/* Card hover */
+.project-card {
+  background-color: var(--card-bg);
+  border: 1px solid rgba(6, 182, 212, 0.1);
+  border-radius: 0.75rem;
+  transition: border-color 0.2s, box-shadow 0.2s, transform 0.2s;
+}
+
+.project-card:hover {
+  border-color: rgba(6, 182, 212, 0.4);
+  box-shadow: 0 8px 32px rgba(6, 182, 212, 0.1);
+  transform: translateY(-4px);
 }
