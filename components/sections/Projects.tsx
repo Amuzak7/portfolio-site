@@ -33,6 +33,8 @@ type Project = {
   hoverImage?: string;
   /** portrait画像（9:16）は "top" を指定して上部をクロップ表示 */
   objectPosition?: string;
+  /** 開発に使用したAIツール名 */
+  aiTool: string;
   liveUrl: string;
   githubUrl?: string;
   featured?: boolean;
@@ -52,6 +54,7 @@ const PROJECTS: Project[] = [
     tags: ["Next.js 15", "TypeScript", "Supabase", "Claude Vision", "shadcn/ui", "Recharts"],
     image: "/images/projects/expenseflow-dashboard.png",
     hoverImage: "/images/projects/expenseflow-summary.png",
+    aiTool: "Claude Code",
     liveUrl: "https://expenseflow-six.vercel.app/",
     githubUrl: "https://github.com/Amuzak7/expenseflow",
     featured: true,
@@ -67,6 +70,7 @@ const PROJECTS: Project[] = [
     hoverImage: "/images/projects/task-calendar.png",
     // モバイル縦長スクリーンショット → 上部（ヘッダー＋コンテンツ）を表示
     objectPosition: "top",
+    aiTool: "Grok",
     liveUrl: "https://task-portfolio-app.vercel.app/",
     githubUrl: "https://github.com/Amuzak7/task-portfolio-app",
   },
@@ -79,6 +83,7 @@ const PROJECTS: Project[] = [
     tags: ["Next.js", "TypeScript", "Supabase", "Tailwind CSS"],
     image: "/images/projects/aether-home.png",
     hoverImage: "/images/projects/aether-products.png",
+    aiTool: "Claude Code",
     liveUrl: "https://aether-ecsite.vercel.app/",
     githubUrl: "https://github.com/Amuzak7/aether-ecsite",
   },
@@ -91,6 +96,7 @@ const PROJECTS: Project[] = [
     tags: ["Next.js", "TypeScript", "Tailwind CSS"],
     image: "/images/projects/catalyst-home.png",
     hoverImage: "/images/projects/catalyst-about.png",
+    aiTool: "Claude Code",
     liveUrl: "https://catalystlink-website.vercel.app/",
   },
 ];
@@ -150,6 +156,18 @@ function ProjectImageArea({
         </div>
       )}
     </div>
+  );
+}
+
+// ──────────────────────────────────────────────
+// AIツール表記（全カード共通）
+// ──────────────────────────────────────────────
+function AiToolLabel({ tool }: { tool: string }) {
+  return (
+    <p className="flex items-center gap-1 text-[10px] text-[#475569] mt-2">
+      <span aria-hidden="true">✦</span>
+      {tool}で作成
+    </p>
   );
 }
 
@@ -267,6 +285,7 @@ function FeaturedCard({ project }: { project: Project }) {
               {tag}
             </span>
           ))}
+          <AiToolLabel tool={project.aiTool} />
         </div>
 
         <DemoCredentials />
@@ -326,6 +345,7 @@ function RegularCard({ project, index }: { project: Project; index: number }) {
               {tag}
             </span>
           ))}
+          <AiToolLabel tool={project.aiTool} />
         </div>
 
         <div className="flex gap-2">
