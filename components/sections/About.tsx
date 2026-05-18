@@ -120,6 +120,7 @@ export default function About() {
                 {[
                   { name: "経費精算ツール", note: "領収書処理の自動化（メイン）" },
                   { name: "タスク管理アプリ", note: "シンプルで使いやすい日常ツール" },
+                  { name: "BallerVault", note: "バスケスタッツ記録ツール（個人開発）" },
                   { name: "架空アパレルECサイト", note: "フルスタック実装練習" },
                   { name: "架空IT企業コーポレートサイト", note: "デザイン＋実装の総合演習" },
                 ].map((project, i) => (
