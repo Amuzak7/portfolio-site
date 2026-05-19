@@ -47,26 +47,46 @@ type Project = {
 };
 
 // ──────────────────────────────────────────────
-// Featured プロジェクト（1件）
+// Featured プロジェクト（2件）
 // ──────────────────────────────────────────────
-const FEATURED_PROJECT: Project = {
-  title: "ExpenseFlow — 経費精算ツール",
-  category: "AI × 業務効率化",
-  description:
-    "領収書をアップロードするだけで、Claude Vision APIが金額・日付・用途を自動解析。入金予定と支出を自動で紐づけ、月末の経費処理を大幅に削減する中小企業向けキャッシュフロー管理ツール。",
-  highlights: [
-    "Claude Vision APIで領収書を自動解析",
-    "入金予定と支出の紐づけ管理",
-    "Rechartsによるキャッシュフロー可視化",
-  ],
-  tags: ["Next.js 15", "TypeScript", "Supabase", "Claude Vision", "shadcn/ui", "Recharts"],
-  image: "/images/projects/expenseflow-dashboard.png",
-  hoverImage: "/images/projects/expenseflow-summary.png",
-  aiTool: "Claude Code",
-  liveUrl: "https://expenseflow-six.vercel.app/",
-  githubUrl: "https://github.com/Amuzak7/expenseflow",
-  featured: true,
-};
+const FEATURED_PROJECTS: Project[] = [
+  {
+    title: "ExpenseFlow — 経費精算ツール",
+    category: "AI × 業務効率化",
+    description:
+      "領収書をアップロードするだけで、Claude Vision APIが金額・日付・用途を自動解析。入金予定と支出を自動で紐づけ、月末の経費処理を大幅に削減する中小企業向けキャッシュフロー管理ツール。",
+    highlights: [
+      "Claude Vision APIで領収書を自動解析",
+      "入金予定と支出の紐づけ管理",
+      "Rechartsによるキャッシュフロー可視化",
+    ],
+    tags: ["Next.js 15", "TypeScript", "Supabase", "Claude Vision", "shadcn/ui", "Recharts"],
+    image: "/images/projects/expenseflow-dashboard.png",
+    hoverImage: "/images/projects/expenseflow-summary.png",
+    aiTool: "Claude Code",
+    liveUrl: "https://expenseflow-six.vercel.app/",
+    githubUrl: "https://github.com/Amuzak7/expenseflow",
+    featured: true,
+  },
+  {
+    title: "Seikyu — 請求書自動生成ツール",
+    category: "業務効率化ツール",
+    description:
+      "顧客情報を登録してワンクリックで適格請求書（インボイス）を発行。自動採番・消費税（10%/軽減8%）計算・PDF/Word 出力まで対応した、個人事業主・中小企業向けの請求書管理ツール。",
+    highlights: [
+      "PDF・Word形式でワンクリック出力",
+      "適格請求書発行事業者登録番号（インボイス）対応",
+      "顧客管理・請求書履歴・自社情報設定を一元管理",
+    ],
+    tags: ["Python", "Streamlit", "SQLite", "fpdf2", "python-docx", "pandas"],
+    image: "/images/projects/seikyu-home.png",
+    hoverImage: "/images/projects/seikyu-invoice.png",
+    aiTool: "Claude Code",
+    liveUrl: "https://seikyu-nryd4daxgvv6rejhwn3ao4.streamlit.app/",
+    githubUrl: "https://github.com/Amuzak7/Seikyu",
+    featured: true,
+  },
+];
 
 // ──────────────────────────────────────────────
 // Side プロジェクト（4件）
@@ -263,7 +283,7 @@ function DemoCredentials() {
 // ──────────────────────────────────────────────
 // Featured カード（全幅・横並び）
 // ──────────────────────────────────────────────
-function FeaturedCard({ project }: { project: Project }) {
+function FeaturedCard({ project, showDemo = false }: { project: Project; showDemo?: boolean }) {
   return (
     <div className="group project-card overflow-hidden lg:grid lg:grid-cols-[5fr_6fr]">
       <ProjectImageArea project={project} priority className="aspect-video lg:aspect-auto lg:min-h-[280px]" />
@@ -294,7 +314,7 @@ function FeaturedCard({ project }: { project: Project }) {
           ))}
           <AiToolLabel tool={project.aiTool} />
         </div>
-        <DemoCredentials />
+        {showDemo && <DemoCredentials />}
         <div className="flex flex-wrap gap-3">
           <a href={project.liveUrl} target="_blank" rel="noopener noreferrer"
             className="btn-primary text-sm flex items-center gap-2">
@@ -434,8 +454,14 @@ export default function Projects() {
           </p>
         </div>
 
-        <div className="scroll-reveal mb-20">
-          <FeaturedCard project={FEATURED_PROJECT} />
+        <div className="scroll-reveal space-y-8 mb-20">
+          {FEATURED_PROJECTS.map((project) => (
+            <FeaturedCard
+              key={project.title}
+              project={project}
+              showDemo={project.title.startsWith("ExpenseFlow")}
+            />
+          ))}
         </div>
 
         {/* ── Side Projects ── */}
