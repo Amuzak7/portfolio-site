@@ -1,0 +1,777 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AIを活用した資料作成ワークフロー — Portfolio</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10.9.1/dist/mermaid.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg-0: #0a0e1a;
+    --bg-1: #0f1524;
+    --bg-2: #161d31;
+    --line: #1f2940;
+    --line-2: #2a3552;
+    --ink: #e8ecf5;
+    --ink-soft: #9ba8c4;
+    --ink-mute: #6b7895;
+    --cyan: #5ee5ff;
+    --blue: #6ea8ff;
+    --violet: #b18bff;
+    --pink: #ff8fb1;
+    --green: #7ef0c8;
+    --amber: #ffd27a;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0;
+    font-family: 'Noto Sans JP', 'Space Grotesk', system-ui, sans-serif;
+    background: var(--bg-0);
+    color: var(--ink);
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+  }
+  .mono { font-family: 'JetBrains Mono', monospace; }
+  .display { font-family: 'Space Grotesk', 'Noto Sans JP', sans-serif; letter-spacing: -0.02em; }
+
+  /* ===== Background ambience ===== */
+  .bg-grid {
+    position: fixed; inset: 0; z-index: 0; pointer-events: none;
+    background-image:
+      linear-gradient(rgba(110,168,255,0.06) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(110,168,255,0.06) 1px, transparent 1px);
+    background-size: 56px 56px;
+    mask-image: radial-gradient(ellipse at top, rgba(0,0,0,1) 0%, transparent 75%);
+    -webkit-mask-image: radial-gradient(ellipse at top, rgba(0,0,0,1) 0%, transparent 75%);
+  }
+  .bg-glow {
+    position: fixed; inset: 0; z-index: 0; pointer-events: none;
+    background:
+      radial-gradient(60% 40% at 20% 10%, rgba(94,229,255,0.12), transparent 60%),
+      radial-gradient(50% 35% at 80% 20%, rgba(177,139,255,0.12), transparent 65%),
+      radial-gradient(70% 50% at 50% 100%, rgba(110,168,255,0.10), transparent 60%);
+  }
+  .noise {
+    position: fixed; inset: 0; z-index: 0; pointer-events: none; opacity: 0.04; mix-blend-mode: overlay;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+  }
+
+  /* ===== Generic ===== */
+  .container-x { max-width: 1180px; margin: 0 auto; padding: 0 24px; position: relative; z-index: 1; }
+  @media (max-width: 640px) { .container-x { padding: 0 18px; } }
+
+  .pill {
+    display:inline-flex; align-items:center; gap:8px;
+    padding: 6px 12px; border-radius: 999px;
+    background: rgba(110,168,255,0.08);
+    border: 1px solid rgba(110,168,255,0.25);
+    color: var(--blue);
+    font-size: 11px; font-weight: 600; letter-spacing: .14em;
+  }
+  .pill-dot { width: 6px; height: 6px; border-radius: 999px; background: var(--cyan); box-shadow: 0 0 12px var(--cyan); }
+
+  .card {
+    background: linear-gradient(180deg, rgba(22,29,49,0.85), rgba(15,21,36,0.85));
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    backdrop-filter: blur(8px);
+    position: relative;
+    overflow: hidden;
+  }
+  .card::before {
+    content:''; position: absolute; inset: 0; border-radius: 16px; pointer-events: none;
+    background: linear-gradient(135deg, rgba(94,229,255,0.08), transparent 40%);
+  }
+  .card-glow:hover { border-color: var(--line-2); transform: translateY(-2px); transition: all .25s ease; }
+
+  .badge-num {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px; letter-spacing: .2em;
+    color: var(--ink-mute);
+  }
+
+  /* Pulse dot */
+  .pulse-dot { position: relative; width: 10px; height: 10px; border-radius: 999px; background: var(--cyan); }
+  .pulse-dot::after {
+    content: ''; position: absolute; inset: -6px; border-radius: 999px;
+    border: 1px solid var(--cyan); animation: pulse 2s ease-out infinite;
+  }
+  @keyframes pulse {
+    0% { transform: scale(0.6); opacity: 1; }
+    100% { transform: scale(1.8); opacity: 0; }
+  }
+
+  /* Section title */
+  .sec-title { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+  .sec-title .bar { width: 28px; height: 2px; background: linear-gradient(90deg, var(--cyan), var(--violet)); border-radius: 2px; }
+  .sec-title .num { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--ink-mute); letter-spacing: .2em; }
+  .sec-title h2 { font-size: clamp(20px, 2.4vw, 28px); font-weight: 700; letter-spacing: -0.01em; margin: 0; }
+
+  /* Mermaid container */
+  .mermaid-wrap {
+    background:
+      radial-gradient(80% 60% at 50% 0%, rgba(94,229,255,0.06), transparent 70%),
+      linear-gradient(180deg, rgba(22,29,49,0.6), rgba(15,21,36,0.6));
+    border: 1px solid var(--line);
+    border-radius: 20px;
+    padding: 28px 16px;
+    position: relative;
+    overflow: hidden;
+  }
+  .mermaid-wrap::before {
+    content: ''; position: absolute; top:-1px; left: 50%; transform: translateX(-50%);
+    width: 60%; height: 1px;
+    background: linear-gradient(90deg, transparent, var(--cyan), var(--violet), transparent);
+  }
+  .mermaid { font-family: 'Noto Sans JP', sans-serif !important; display: flex; justify-content: center; }
+  .mermaid svg { max-width: 100%; height: auto; }
+
+  /* Feature card icon */
+  .feat-icon {
+    width: 36px; height: 36px; border-radius: 10px;
+    display:inline-flex; align-items:center; justify-content:center;
+    background: linear-gradient(135deg, rgba(94,229,255,0.18), rgba(177,139,255,0.18));
+    border: 1px solid rgba(94,229,255,0.25);
+    color: var(--cyan);
+  }
+
+  /* Tag chips */
+  .chip {
+    display:inline-flex; align-items:center; gap: 6px;
+    padding: 4px 10px; border-radius: 6px;
+    font-size: 11px; font-weight: 500; letter-spacing: .05em;
+    background: rgba(110,168,255,0.08); color: var(--ink-soft);
+    border: 1px solid var(--line);
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  /* hero gradient text */
+  .gradient-text {
+    background: linear-gradient(135deg, #fff 0%, #b9d5ff 40%, #b18bff 100%);
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+  }
+  .accent-text {
+    background: linear-gradient(135deg, var(--cyan), var(--violet));
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+  }
+
+  /* Output preview frame */
+  .preview-frame {
+    background: #fff;
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: 0 20px 40px -10px rgba(0,0,0,0.4);
+    position: relative;
+  }
+  .preview-frame .titlebar {
+    background: #f3f5f9; padding: 8px 12px; display: flex; gap: 6px; align-items: center;
+    border-bottom: 1px solid #e1e6ef;
+  }
+  .preview-frame .titlebar .dot { width: 10px; height: 10px; border-radius: 999px; }
+
+  /* code window */
+  .code-win {
+    background: #0c1120; border: 1px solid var(--line); border-radius: 12px; overflow: hidden;
+  }
+  .code-win .top {
+    padding: 8px 14px; display: flex; align-items: center; gap: 10px;
+    background: #0a0f1c; border-bottom: 1px solid var(--line);
+    font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--ink-mute);
+  }
+  .code-win pre {
+    margin: 0; padding: 14px 16px; font-family: 'JetBrains Mono', monospace;
+    font-size: 12px; line-height: 1.7; color: var(--ink-soft);
+    white-space: pre-wrap; word-break: break-word;
+  }
+  .tk-key { color: #ff8fb1; }
+  .tk-str { color: #7ef0c8; }
+  .tk-cm  { color: #6b7895; font-style: italic; }
+  .tk-fn  { color: #5ee5ff; }
+  .tk-hd  { color: #ffd27a; }
+
+  /* Stage label */
+  .stage-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px; letter-spacing: .25em;
+    color: var(--ink-mute); text-transform: uppercase;
+  }
+
+  /* Stat number */
+  .stat-num {
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 700;
+    font-size: clamp(28px, 4vw, 40px);
+    letter-spacing: -0.02em;
+    background: linear-gradient(135deg, #fff, #5ee5ff);
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+  }
+
+  /* Animations */
+  .reveal { opacity: 0; transform: translateY(14px); animation: reveal .8s ease forwards; }
+  @keyframes reveal { to { opacity: 1; transform: translateY(0); } }
+  .delay-1 { animation-delay: .1s; }
+  .delay-2 { animation-delay: .2s; }
+  .delay-3 { animation-delay: .3s; }
+  .delay-4 { animation-delay: .4s; }
+  .delay-5 { animation-delay: .5s; }
+</style>
+</head>
+<body>
+
+<div class="bg-grid"></div>
+<div class="bg-glow"></div>
+<div class="noise"></div>
+
+<!-- ========== TOP BAR ========== -->
+<header class="container-x" style="padding-top: 28px;">
+  <div class="flex items-center justify-between">
+    <div class="flex items-center gap-3">
+      <div style="width:34px;height:34px;border-radius:9px;background:linear-gradient(135deg,#5ee5ff,#b18bff);display:flex;align-items:center;justify-content:center;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#0a0e1a" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+          <path d="M2 17l10 5 10-5"/>
+          <path d="M2 12l10 5 10-5"/>
+        </svg>
+      </div>
+      <div>
+        <p class="mono text-[10px] tracking-[0.25em]" style="color: var(--ink-mute);">PORTFOLIO / CASE 03</p>
+        <p class="text-sm font-semibold display">AI-Assisted Document Workflow</p>
+      </div>
+    </div>
+    <div class="hidden md:flex items-center gap-2">
+      <span class="chip"><span class="pulse-dot"></span>2026</span>
+      <span class="chip">v1.0</span>
+    </div>
+  </div>
+</header>
+
+<!-- ========== HERO ========== -->
+<section class="container-x" style="padding-top: 80px; padding-bottom: 70px;">
+  <div class="reveal">
+    <span class="pill"><span class="pill-dot"></span>AI WORKFLOW SHOWCASE</span>
+  </div>
+  <h1 class="display reveal delay-1" style="font-size: clamp(36px, 6vw, 64px); font-weight: 700; line-height: 1.1; margin: 22px 0 0;">
+    <span class="gradient-text">議事録から、</span><br>
+    <span class="accent-text">経営層向けの資料まで。</span>
+  </h1>
+  <p class="reveal delay-2" style="margin-top: 22px; max-width: 660px; color: var(--ink-soft); font-size: clamp(14px, 1.5vw, 16px); line-height: 1.85;">
+    ルールとテンプレートをMarkdownで定義しておき、<br class="hidden md:block">
+    Claudeにそれを参照させることで、議事録やメモから<br class="hidden md:block">
+    対象者に合わせたHTML資料を<strong style="color: var(--ink); font-weight:600;">最短数分</strong>で生み出すワークフロー。<br class="hidden md:block">
+    人間が「ルールを書く」、AIが「資料を書く」 — 役割を分けることで、速さと一貫性を両立しました。
+  </p>
+
+  <!-- Stats row -->
+  <div class="reveal delay-3 grid grid-cols-3 gap-3 md:gap-6 mt-12 max-w-3xl">
+    <div>
+      <div class="stage-label">CYCLE TIME</div>
+      <div class="stat-num">2h<span style="color: var(--ink-mute); font-size: 0.5em; font-weight: 400;"> → </span>5min</div>
+      <p class="text-xs mt-1" style="color: var(--ink-mute);">資料作成のリードタイム</p>
+    </div>
+    <div>
+      <div class="stage-label">REUSABLE</div>
+      <div class="stat-num">3<span style="color: var(--ink-mute); font-size: 0.5em; font-weight: 400;">種</span></div>
+      <p class="text-xs mt-1" style="color: var(--ink-mute);">対象者別テンプレート</p>
+    </div>
+    <div>
+      <div class="stage-label">SINGLE FILE</div>
+      <div class="stat-num">1<span style="color: var(--ink-mute); font-size: 0.5em; font-weight: 400;">.html</span></div>
+      <p class="text-xs mt-1" style="color: var(--ink-mute);">完結する出力形式</p>
+    </div>
+  </div>
+</section>
+
+<!-- ========== WORKFLOW MERMAID ========== -->
+<section class="container-x" style="padding-bottom: 80px;">
+  <div class="sec-title mb-6 reveal">
+    <span class="bar"></span>
+    <span class="num">01 / WORKFLOW</span>
+    <h2 class="display">入力から出力までの全体像</h2>
+  </div>
+
+  <div class="mermaid-wrap reveal delay-1">
+    <div class="mermaid">
+flowchart LR
+    subgraph INPUT [" 　INPUT　 "]
+      direction TB
+      A1["📝 議事録 (.md)"]
+      A2["🗒️ メモ・雑記 (.md)"]
+      A3["📊 既存資料"]
+    end
+
+    subgraph KB [" 　KNOWLEDGE BASE　 "]
+      direction TB
+      R["📐 ルール定義<br/><span style='font-size:10px;color:#9ba8c4;'>HTML資料作成ルール.md</span>"]
+      T["📋 テンプレート<br/><span style='font-size:10px;color:#9ba8c4;'>対象者別プロンプト.md</span>"]
+    end
+
+    subgraph CORE [" 　AI ENGINE　 "]
+      direction TB
+      C(("🤖<br/>Claude"))
+    end
+
+    subgraph OUTPUT [" 　OUTPUT　 "]
+      direction TB
+      O1["👔 経営層向け<br/>業務フロー資料"]
+      O2["🛠️ 現場向け<br/>負担分析資料"]
+      O3["📄 PDF出力前提<br/>レポート"]
+    end
+
+    A1 --> C
+    A2 --> C
+    A3 --> C
+    R -.参照.-> C
+    T -.参照.-> C
+    C ==> O1
+    C ==> O2
+    C ==> O3
+
+    classDef input fill:#162033,stroke:#5ee5ff,stroke-width:1.5px,color:#e8ecf5
+    classDef rule  fill:#1a1e36,stroke:#b18bff,stroke-width:1.5px,color:#e8ecf5
+    classDef core  fill:#0a0e1a,stroke:#5ee5ff,stroke-width:3px,color:#5ee5ff
+    classDef out   fill:#1a2332,stroke:#7ef0c8,stroke-width:1.5px,color:#e8ecf5
+
+    class A1,A2,A3 input
+    class R,T rule
+    class C core
+    class O1,O2,O3 out
+
+    style INPUT fill:transparent,stroke:#2a3552,stroke-dasharray:4 4,color:#9ba8c4
+    style KB fill:transparent,stroke:#2a3552,stroke-dasharray:4 4,color:#9ba8c4
+    style CORE fill:transparent,stroke:#2a3552,stroke-dasharray:4 4,color:#9ba8c4
+    style OUTPUT fill:transparent,stroke:#2a3552,stroke-dasharray:4 4,color:#9ba8c4
+    </div>
+  </div>
+
+  <p class="mt-5 text-sm text-center max-w-3xl mx-auto" style="color: var(--ink-mute);">
+    ポイントは、<span style="color: var(--violet);">「ナレッジベース（Markdown）」</span>と<span style="color: var(--cyan);">「AIエンジン（Claude）」</span>を分離していること。<br class="hidden md:block">
+    ルールは人間が育て、生成はAIが担う。
+  </p>
+</section>
+
+<!-- ========== 3-STAGE BREAKDOWN ========== -->
+<section class="container-x" style="padding-bottom: 80px;">
+  <div class="sec-title mb-6 reveal">
+    <span class="bar"></span>
+    <span class="num">02 / STAGES</span>
+    <h2 class="display">3つのステージ</h2>
+  </div>
+
+  <div class="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-5">
+
+    <!-- INPUT -->
+    <div class="card card-glow p-6 reveal delay-1">
+      <div class="flex items-center justify-between mb-4">
+        <div class="feat-icon">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+            <polyline points="14 2 14 8 20 8"/>
+          </svg>
+        </div>
+        <span class="badge-num">STAGE / 01</span>
+      </div>
+      <p class="stage-label" style="color: var(--cyan);">INPUT</p>
+      <h3 class="display text-xl font-bold mt-1 mb-3">構造化されていない情報</h3>
+      <p class="text-sm leading-relaxed" style="color: var(--ink-soft);">
+        会議の議事録、走り書きのメモ、既存の社内資料。Markdownでざっくり書いておくだけで、十分に素材として機能します。
+      </p>
+      <div class="flex flex-wrap gap-2 mt-5">
+        <span class="chip">.md</span>
+        <span class="chip">議事録</span>
+        <span class="chip">memo</span>
+        <span class="chip">notes</span>
+      </div>
+    </div>
+
+    <!-- PROCESS -->
+    <div class="card card-glow p-6 reveal delay-2" style="border-color: rgba(94,229,255,0.35);">
+      <div class="flex items-center justify-between mb-4">
+        <div class="feat-icon" style="background: linear-gradient(135deg, rgba(94,229,255,0.3), rgba(177,139,255,0.3)); border-color: rgba(94,229,255,0.5);">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="3"/>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+          </svg>
+        </div>
+        <span class="badge-num">STAGE / 02</span>
+      </div>
+      <p class="stage-label" style="color: var(--violet);">PROCESS</p>
+      <h3 class="display text-xl font-bold mt-1 mb-3">Markdownルール × Claude</h3>
+      <p class="text-sm leading-relaxed" style="color: var(--ink-soft);">
+        Markdownで定義したルール・テンプレートをClaudeに参照させ、HTML／Mermaidを使った見やすい資料を生成させます。ルールがあるから、出力が安定します。
+      </p>
+      <div class="flex flex-wrap gap-2 mt-5">
+        <span class="chip">Claude</span>
+        <span class="chip">rules.md</span>
+        <span class="chip">template.md</span>
+        <span class="chip">prompt</span>
+      </div>
+    </div>
+
+    <!-- OUTPUT -->
+    <div class="card card-glow p-6 reveal delay-3">
+      <div class="flex items-center justify-between mb-4">
+        <div class="feat-icon" style="color: var(--green); background: linear-gradient(135deg, rgba(126,240,200,0.18), rgba(110,168,255,0.18)); border-color: rgba(126,240,200,0.3);">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+            <polyline points="7 10 12 15 17 10"/>
+            <line x1="12" y1="15" x2="12" y2="3"/>
+          </svg>
+        </div>
+        <span class="badge-num">STAGE / 03</span>
+      </div>
+      <p class="stage-label" style="color: var(--green);">OUTPUT</p>
+      <h3 class="display text-xl font-bold mt-1 mb-3">対象者別のHTML資料</h3>
+      <p class="text-sm leading-relaxed" style="color: var(--ink-soft);">
+        経営層・現場・PDF前提の3パターン。Tailwind CSSとMermaidを活用した、1ファイルで完結するモダンな資料が出力されます。
+      </p>
+      <div class="flex flex-wrap gap-2 mt-5">
+        <span class="chip">.html</span>
+        <span class="chip">Tailwind</span>
+        <span class="chip">Mermaid</span>
+        <span class="chip">PDF-ready</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ========== FEATURES ========== -->
+<section class="container-x" style="padding-bottom: 80px;">
+  <div class="sec-title mb-6 reveal">
+    <span class="bar"></span>
+    <span class="num">03 / FEATURES</span>
+    <h2 class="display">仕組みを支える4つの特徴</h2>
+  </div>
+
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-5">
+
+    <div class="card card-glow p-6 reveal delay-1">
+      <div class="flex items-start gap-4">
+        <div class="feat-icon flex-shrink-0">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+            <polyline points="14 2 14 8 20 8"/>
+            <line x1="9" y1="13" x2="15" y2="13"/>
+            <line x1="9" y1="17" x2="15" y2="17"/>
+          </svg>
+        </div>
+        <div>
+          <h4 class="display font-bold text-lg mb-1">Markdownで定義する運用ルール</h4>
+          <p class="text-sm leading-relaxed" style="color: var(--ink-soft);">
+            「PDF前提のときはアコーディオン禁止」「経営層には青基調」など、運用ルールをMarkdownで明文化。チームでメンテナンスでき、AIにも人間にも読めるドキュメントになります。
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <div class="card card-glow p-6 reveal delay-2">
+      <div class="flex items-start gap-4">
+        <div class="feat-icon flex-shrink-0" style="color: var(--violet);">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+            <polyline points="14 2 14 8 20 8"/>
+            <line x1="9" y1="15" x2="15" y2="15"/>
+          </svg>
+        </div>
+        <div>
+          <h4 class="display font-bold text-lg mb-1">PDF化を前提とした設計</h4>
+          <p class="text-sm leading-relaxed" style="color: var(--ink-soft);">
+            A4の余白、改ページ制御、印刷時のスタイル切替を組み込み済み。ブラウザの「PDFとして保存」だけで配布物が完成します。
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <div class="card card-glow p-6 reveal delay-3">
+      <div class="flex items-start gap-4">
+        <div class="feat-icon flex-shrink-0" style="color: var(--green);">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="6" cy="6" r="3"/>
+            <circle cx="18" cy="6" r="3"/>
+            <circle cx="12" cy="18" r="3"/>
+            <line x1="8" y1="8" x2="11" y2="16"/>
+            <line x1="16" y1="8" x2="13" y2="16"/>
+          </svg>
+        </div>
+        <div>
+          <h4 class="display font-bold text-lg mb-1">HTML × Mermaidで視覚化</h4>
+          <p class="text-sm leading-relaxed" style="color: var(--ink-soft);">
+            業務フローや構造図はMermaidで記述。テキストベースなのでAIが直接生成でき、後の修正もコードの差分で管理できます。
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <div class="card card-glow p-6 reveal delay-4">
+      <div class="flex items-start gap-4">
+        <div class="feat-icon flex-shrink-0" style="color: var(--amber);">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/>
+          </svg>
+        </div>
+        <div>
+          <h4 class="display font-bold text-lg mb-1">対象者別のチューニング</h4>
+          <p class="text-sm leading-relaxed" style="color: var(--ink-soft);">
+            経営層には「全体像と投資対効果」、現場には「具体的な負担と打ち手」。トーンと深さをテンプレート側で切り替えます。
+          </p>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ========== UNDER THE HOOD ========== -->
+<section class="container-x" style="padding-bottom: 80px;">
+  <div class="sec-title mb-6 reveal">
+    <span class="bar"></span>
+    <span class="num">04 / UNDER THE HOOD</span>
+    <h2 class="display">舞台裏 — Markdownで全部書く</h2>
+  </div>
+
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
+    <!-- Rule file -->
+    <div class="code-win reveal delay-1">
+      <div class="top">
+        <span style="width:8px;height:8px;border-radius:50%;background:#ff8fb1;"></span>
+        <span style="width:8px;height:8px;border-radius:50%;background:#ffd27a;"></span>
+        <span style="width:8px;height:8px;border-radius:50%;background:#7ef0c8;"></span>
+        <span class="ml-2">HTML資料作成ルール.md</span>
+      </div>
+<pre><span class="tk-hd"># HTML資料作成ルール</span>
+
+<span class="tk-cm">## 基本方針</span>
+- 資料は <span class="tk-str">1つのHTMLファイル</span> で完結させる
+- Tailwind CSS CDN を使用
+- 印刷（PDF化）を前提に作成する
+- 対象者に応じて深さと表現を変える
+
+<span class="tk-cm">## HTMLとMermaidの使い分け</span>
+- 業務フロー・全体像 → <span class="tk-key">Mermaid</span>
+- ヒートマップ・比較表 → <span class="tk-key">HTMLテーブル</span>
+- 詳細説明 → <span class="tk-key">HTML（PDF時は展開）</span>
+
+<span class="tk-cm">## PDF化を前提とする場合</span>
+- アコーディオン・トグルは <span class="tk-fn">使用しない</span>
+- 全内容を最初から展開した状態で作成
+- 改ページとフォントサイズを意識
+</pre>
+    </div>
+
+    <!-- Template file -->
+    <div class="code-win reveal delay-2">
+      <div class="top">
+        <span style="width:8px;height:8px;border-radius:50%;background:#ff8fb1;"></span>
+        <span style="width:8px;height:8px;border-radius:50%;background:#ffd27a;"></span>
+        <span style="width:8px;height:8px;border-radius:50%;background:#7ef0c8;"></span>
+        <span class="ml-2">経営層向け_業務フロー説明.md</span>
+      </div>
+<pre><span class="tk-hd"># 経営層向け業務フロー説明資料</span>
+
+<span class="tk-cm">## 参照するルール</span>
+<span class="tk-fn">HTML資料作成ルール.md</span> を遵守
+
+<span class="tk-cm">## 入力</span>
+- 議事録（Markdown）
+
+<span class="tk-cm">## 出力要件</span>
+1. <span class="tk-str">エグゼクティブサマリー</span>
+2. <span class="tk-str">業務フロー（Mermaid）</span>
+3. <span class="tk-str">負担ヒートマップ</span>
+4. <span class="tk-str">問題点の詳細</span>
+5. <span class="tk-str">改善提案（優先度色分け）</span>
+6. <span class="tk-str">次の一手</span>
+
+<span class="tk-cm">## 指示</span>
+<span class="tk-fn">→ ルールに従い、1ファイルのHTMLを生成</span>
+</pre>
+    </div>
+  </div>
+
+  <p class="mt-5 text-xs text-center" style="color: var(--ink-mute);">
+    Claudeにチャットで「このルールとテンプレを参照して、議事録から資料を作って」と頼むだけ。<br class="hidden md:block">
+    人間が触るのはMarkdownだけで、HTMLは全てAIが書く。
+  </p>
+</section>
+
+<!-- ========== OUTPUT GALLERY ========== -->
+<section class="container-x" style="padding-bottom: 80px;">
+  <div class="sec-title mb-6 reveal">
+    <span class="bar"></span>
+    <span class="num">05 / OUTPUTS</span>
+    <h2 class="display">同じ素材から、3つの顔</h2>
+  </div>
+
+  <div class="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-5">
+    <!-- Output 1 -->
+    <div class="card card-glow p-5 reveal delay-1">
+      <div class="preview-frame">
+        <div class="titlebar">
+          <span class="dot" style="background:#ff8fb1;"></span>
+          <span class="dot" style="background:#ffd27a;"></span>
+          <span class="dot" style="background:#7ef0c8;"></span>
+        </div>
+        <svg viewBox="0 0 320 200" xmlns="http://www.w3.org/2000/svg" style="display:block;width:100%;height:auto;background:#f6f9fd;">
+          <rect x="14" y="14" width="120" height="6" rx="2" fill="#0b1f3a"/>
+          <rect x="14" y="26" width="200" height="10" rx="2" fill="#1d3f74"/>
+          <rect x="14" y="48" width="290" height="36" rx="4" fill="#fff" stroke="#e3ebf5"/>
+          <rect x="22" y="56" width="60" height="4" rx="1" fill="#3b6fb8"/>
+          <rect x="22" y="65" width="180" height="3" rx="1" fill="#9ba8c4"/>
+          <rect x="22" y="72" width="160" height="3" rx="1" fill="#9ba8c4"/>
+          <rect x="14" y="92" width="93" height="36" rx="4" fill="#fde8e6" stroke="#c0392b"/>
+          <rect x="113" y="92" width="93" height="36" rx="4" fill="#fff3e0" stroke="#e67e22"/>
+          <rect x="212" y="92" width="92" height="36" rx="4" fill="#e4edf9" stroke="#2b5694"/>
+          <rect x="14" y="138" width="290" height="50" rx="4" fill="#fff" stroke="#e3ebf5"/>
+          <rect x="22" y="146" width="60" height="4" rx="1" fill="#0b1f3a"/>
+          <rect x="22" y="156" width="270" height="2" rx="1" fill="#e3ebf5"/>
+          <rect x="22" y="164" width="270" height="2" rx="1" fill="#e3ebf5"/>
+          <rect x="22" y="172" width="200" height="2" rx="1" fill="#e3ebf5"/>
+        </svg>
+      </div>
+      <div class="mt-4">
+        <span class="chip" style="color: var(--cyan); border-color: rgba(94,229,255,0.3);">FOR EXECUTIVES</span>
+        <h4 class="display font-bold text-base mt-3">経営層向け / 業務フロー説明</h4>
+        <p class="text-xs mt-2 leading-relaxed" style="color: var(--ink-soft);">青基調の落ち着いたトーン。全体像とROIに焦点。</p>
+      </div>
+    </div>
+
+    <!-- Output 2 -->
+    <div class="card card-glow p-5 reveal delay-2">
+      <div class="preview-frame">
+        <div class="titlebar">
+          <span class="dot" style="background:#ff8fb1;"></span>
+          <span class="dot" style="background:#ffd27a;"></span>
+          <span class="dot" style="background:#7ef0c8;"></span>
+        </div>
+        <svg viewBox="0 0 320 200" xmlns="http://www.w3.org/2000/svg" style="display:block;width:100%;height:auto;background:#fff8f2;">
+          <rect x="14" y="14" width="120" height="6" rx="2" fill="#7a3f0d"/>
+          <rect x="14" y="26" width="200" height="10" rx="2" fill="#e67e22"/>
+          <rect x="14" y="50" width="140" height="60" rx="4" fill="#fff" stroke="#f1d9b8"/>
+          <rect x="22" y="58" width="50" height="4" rx="1" fill="#e67e22"/>
+          <circle cx="50" cy="85" r="15" fill="none" stroke="#e67e22" stroke-width="6"/>
+          <circle cx="50" cy="85" r="15" fill="none" stroke="#c0392b" stroke-width="6" stroke-dasharray="60 100"/>
+          <rect x="80" y="78" width="60" height="3" rx="1" fill="#9ba8c4"/>
+          <rect x="80" y="86" width="40" height="3" rx="1" fill="#9ba8c4"/>
+          <rect x="80" y="94" width="50" height="3" rx="1" fill="#9ba8c4"/>
+          <rect x="164" y="50" width="142" height="60" rx="4" fill="#fff" stroke="#f1d9b8"/>
+          <rect x="172" y="58" width="50" height="4" rx="1" fill="#7ef0c8"/>
+          <rect x="172" y="72" width="120" height="6" rx="1" fill="#fbe5cf"/>
+          <rect x="172" y="72" width="80" height="6" rx="1" fill="#e67e22"/>
+          <rect x="172" y="84" width="120" height="6" rx="1" fill="#fbe5cf"/>
+          <rect x="172" y="84" width="100" height="6" rx="1" fill="#c0392b"/>
+          <rect x="172" y="96" width="120" height="6" rx="1" fill="#fbe5cf"/>
+          <rect x="172" y="96" width="50" height="6" rx="1" fill="#7ef0c8"/>
+          <rect x="14" y="120" width="290" height="68" rx="4" fill="#fff" stroke="#f1d9b8"/>
+          <rect x="22" y="128" width="60" height="4" rx="1" fill="#7a3f0d"/>
+          <rect x="22" y="142" width="270" height="2" rx="1" fill="#f1d9b8"/>
+          <rect x="22" y="150" width="270" height="2" rx="1" fill="#f1d9b8"/>
+          <rect x="22" y="158" width="270" height="2" rx="1" fill="#f1d9b8"/>
+          <rect x="22" y="170" width="180" height="2" rx="1" fill="#f1d9b8"/>
+        </svg>
+      </div>
+      <div class="mt-4">
+        <span class="chip" style="color: var(--amber); border-color: rgba(255,210,122,0.3);">FOR FRONTLINE</span>
+        <h4 class="display font-bold text-base mt-3">現場向け / 負担分析</h4>
+        <p class="text-xs mt-2 leading-relaxed" style="color: var(--ink-soft);">温かみのある配色。共感と打ち手を重視。</p>
+      </div>
+    </div>
+
+    <!-- Output 3 -->
+    <div class="card card-glow p-5 reveal delay-3">
+      <div class="preview-frame">
+        <div class="titlebar">
+          <span class="dot" style="background:#ff8fb1;"></span>
+          <span class="dot" style="background:#ffd27a;"></span>
+          <span class="dot" style="background:#7ef0c8;"></span>
+        </div>
+        <svg viewBox="0 0 320 200" xmlns="http://www.w3.org/2000/svg" style="display:block;width:100%;height:auto;background:#fff;">
+          <rect x="40" y="14" width="240" height="10" rx="1" fill="#0b1f3a"/>
+          <rect x="40" y="28" width="160" height="4" rx="1" fill="#9ba8c4"/>
+          <rect x="40" y="44" width="240" height="40" rx="2" fill="#f3f7fd" stroke="#c5d4e8"/>
+          <rect x="48" y="52" width="60" height="3" rx="1" fill="#3b6fb8"/>
+          <rect x="48" y="60" width="220" height="2" rx="1" fill="#9ba8c4"/>
+          <rect x="48" y="66" width="220" height="2" rx="1" fill="#9ba8c4"/>
+          <rect x="48" y="72" width="180" height="2" rx="1" fill="#9ba8c4"/>
+          <rect x="40" y="92" width="240" height="50" rx="2" fill="#fff" stroke="#c5d4e8"/>
+          <rect x="48" y="100" width="40" height="3" rx="1" fill="#3b6fb8"/>
+          <g>
+            <rect x="48" y="110" width="220" height="6" fill="#eaf1fb"/>
+            <rect x="48" y="118" width="220" height="6" fill="#f4d8a3"/>
+            <rect x="48" y="126" width="220" height="6" fill="#eba872"/>
+            <rect x="48" y="134" width="220" height="6" fill="#c0392b"/>
+          </g>
+          <rect x="40" y="150" width="240" height="40" rx="2" fill="#fff" stroke="#c5d4e8"/>
+          <rect x="48" y="158" width="50" height="3" rx="1" fill="#3b6fb8"/>
+          <rect x="48" y="168" width="220" height="2" rx="1" fill="#9ba8c4"/>
+          <rect x="48" y="174" width="220" height="2" rx="1" fill="#9ba8c4"/>
+          <rect x="48" y="180" width="160" height="2" rx="1" fill="#9ba8c4"/>
+          <line x1="30" y1="0" x2="30" y2="200" stroke="#e3ebf5" stroke-dasharray="2 2"/>
+          <line x1="290" y1="0" x2="290" y2="200" stroke="#e3ebf5" stroke-dasharray="2 2"/>
+        </svg>
+      </div>
+      <div class="mt-4">
+        <span class="chip" style="color: var(--green); border-color: rgba(126,240,200,0.3);">PDF READY</span>
+        <h4 class="display font-bold text-base mt-3">PDF出力前提 / レポート</h4>
+        <p class="text-xs mt-2 leading-relaxed" style="color: var(--ink-soft);">A4・改ページ最適化。配布物としてそのまま使える。</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ========== CTA / CLOSING ========== -->
+<section class="container-x" style="padding-bottom: 100px;">
+  <div class="card p-8 md:p-12 reveal" style="background: linear-gradient(135deg, rgba(94,229,255,0.08), rgba(177,139,255,0.08));">
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 items-center">
+      <div class="md:col-span-2">
+        <p class="stage-label" style="color: var(--cyan);">THE TAKEAWAY</p>
+        <h3 class="display font-bold mt-2 mb-3" style="font-size: clamp(22px, 3vw, 30px); line-height: 1.3;">
+          <span class="accent-text">人間はルールを書く。AIは資料を書く。</span>
+        </h3>
+        <p class="text-sm md:text-base leading-relaxed" style="color: var(--ink-soft);">
+          単発のプロンプトに頼るのではなく、ルール・テンプレート・運用フローをMarkdownで設計しておく。<br class="hidden md:block">
+          それだけで、AIは "再現性のある資料作成インフラ" になります。
+        </p>
+      </div>
+      <div class="flex flex-col gap-2">
+        <span class="chip" style="justify-content:center;">Claude</span>
+        <span class="chip" style="justify-content:center;">Obsidian</span>
+        <span class="chip" style="justify-content:center;">Tailwind CSS</span>
+        <span class="chip" style="justify-content:center;">Mermaid.js</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ========== FOOTER ========== -->
+<footer class="container-x" style="padding-bottom: 40px;">
+  <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-3 pt-6" style="border-top: 1px solid var(--line);">
+    <p class="text-xs mono" style="color: var(--ink-mute);">© 2026 / AI-Assisted Document Workflow / Portfolio Case 03</p>
+    <p class="text-xs mono" style="color: var(--ink-mute);">Built with Claude × Obsidian × Tailwind × Mermaid</p>
+  </div>
+</footer>
+
+<script>
+  mermaid.initialize({
+    startOnLoad: true,
+    theme: 'base',
+    themeVariables: {
+      fontFamily: 'Noto Sans JP, sans-serif',
+      background: 'transparent',
+      primaryColor: '#162033',
+      primaryTextColor: '#e8ecf5',
+      primaryBorderColor: '#5ee5ff',
+      lineColor: '#5ee5ff',
+      secondaryColor: '#1a1e36',
+      tertiaryColor: '#0a0e1a',
+      clusterBkg: 'transparent',
+      clusterBorder: '#2a3552',
+      edgeLabelBackground: '#0a0e1a'
+    },
+    flowchart: { useMaxWidth: true, htmlLabels: true, curve: 'basis', padding: 20 }
+  });
+</script>
+
+</body>
+</html>
